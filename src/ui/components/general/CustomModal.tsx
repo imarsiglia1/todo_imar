@@ -15,7 +15,7 @@ Modal.setAppElement("#root");
 
 interface ModalProps {
   visible: boolean;
-  closeModal: () => void;
+  closeModal?: () => void;
   customStyles?: any;
   children: any;
 }
@@ -28,6 +28,7 @@ const CustomModal = ({
 }: ModalProps) => {
   return (
     <Modal
+      closeTimeoutMS={200}
       isOpen={visible}
       onRequestClose={closeModal}
       style={customStyles}
