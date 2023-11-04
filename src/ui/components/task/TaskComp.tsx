@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo, useEffect } from "react";
 import { TaskType } from "../../../domain/api/entities/general.entities";
 import { TbEdit, TbTrash } from "react-icons/tb";
 import CustomCheckbox from "../input/CustomCheckbox";
@@ -21,6 +21,10 @@ const TaskComp = ({
 }: TaskProps) => {
   const [checked, setChecked] = useState(item.isChecked);
 
+  useEffect(() => {
+    setChecked(item.isChecked);
+  }, [item]);
+
   const onPreToggle = () => {
     item.isChecked = !checked;
     setChecked(!checked);
@@ -30,8 +34,6 @@ const TaskComp = ({
   const color = useMemo(() => {
     return getTaskColor(index);
   }, [index]);
-
-  console.log(color);
 
   return (
     <div className="card_task" style={{ backgroundColor: color.color }}>
@@ -59,4 +61,4 @@ const TaskComp = ({
   );
 };
 
-export default TaskComp;
+export default memo(TaskComp);

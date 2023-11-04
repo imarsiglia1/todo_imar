@@ -1,8 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { AiOutlinePlus } from "react-icons/ai";
+import { TaskType } from "../../../domain/api/entities/general.entities";
 import CustomModal from "../../components/general/CustomModal";
+import EmptyMessage from "../../components/general/EmptyMessage";
 import CustomInput from "../../components/input/CustomInput";
+import CustomTextArea from "../../components/input/CustomTextArea";
+import TaskComp from "../../components/task/TaskComp";
+import {
+  showErrorMessage,
+  showLoading,
+  showSuccessMessage,
+} from "../../components/utils/SweetAlert";
 import useModal from "../../hooks/useModal";
 import {
   useCheckTask,
@@ -11,23 +20,15 @@ import {
   useRemoveTask,
   useTaskAll,
 } from "../../hooks/useTask";
-import TaskComp from "../../components/task/TaskComp";
-import { TaskType } from "../../../domain/api/entities/general.entities";
-import CustomTextArea from "../../components/input/CustomTextArea";
-import {
-  showErrorMessage,
-  showLoading,
-  showSuccessMessage,
-} from "../../components/utils/SweetAlert";
+import CustomSelect from "../../components/input/CustomSelect";
+import DarkModeToggle from "../../components/general/DarkModeToggle";
 
 const HomePage = () => {
   const { data: taskList, isFetching, refetch } = useTaskAll();
-  const { mutateAsync: createAsync, isLoading: isLoadingCreate } =
-    useCreateTask();
-  const { mutateAsync: editAsync, isLoading: isLoadingEdit } = useEditTask();
-  const { mutateAsync: deleteAsync, isLoading: isLoadingDelete } =
-    useRemoveTask();
-  const { mutateAsync: checkAsync, isLoading: isLoadingCheck } = useCheckTask();
+  const { mutateAsync: createAsync } = useCreateTask();
+  const { mutateAsync: editAsync } = useEditTask();
+  const { mutateAsync: deleteAsync } = useRemoveTask();
+  const { mutateAsync: checkAsync } = useCheckTask();
   const { visible, openModal, closeModal } = useModal();
   const {
     visible: visibleDelete,
@@ -39,13 +40,24 @@ const HomePage = () => {
     openModal: openModalEdit,
     closeModal: closeModalEdit,
   } = useModal();
-  const { register, handleSubmit, reset } = useForm<TaskType>();
+  const { register, handleSubmit, reset } = useForm<TaskType>({
+    shouldFocusError: true,
+    shouldUseNativeValidation: true,
+    reValidateMode: "onSubmit",
+  });
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
     setValue: setValueEdit,
-  } = useForm<TaskType>();
+  } = useForm<TaskType>({
+    shouldFocusError: true,
+    shouldUseNativeValidation: true,
+    reValidateMode: "onSubmit",
+  });
+
+  const [filter, setFilter] = useState("");
+  const [isCompleted, setIsCompleted] = useState("");
   const [selectedTask, setSelectedTask] = useState<TaskType | undefined | null>(
     null
   );
@@ -119,24 +131,58 @@ const HomePage = () => {
     }
   };
 
+  const filteredList = useMemo(() => {
+    if (taskList) {
+      return taskList?.filter(
+        (task) =>
+          task.title.toLowerCase().includes(filter.trim().toLowerCase()) &&
+          (isCompleted != "true" ? true : task.isChecked == true)
+      );
+    } else {
+      return [];
+    }
+  }, [filter, isCompleted, taskList]);
+
   if (!taskList) {
     return <></>;
   }
 
   return (
     <div className="container">
-      <div className="align_right_content">
-        <button className="button" type="button" onClick={openModal}>
-          Nueva tarea <AiOutlinePlus />
-        </button>
+      <div className="flex_right">
+        <DarkModeToggle />
+      </div>
+      <br />
+
+      <div className="row_space">
+        <CustomInput
+          type="text"
+          className="input_text w_50"
+          placeholder="Buscar tarea"
+          onChange={(e) => setFilter(e.target.value)}
+        />
+
+        <CustomSelect onChange={(e) => setIsCompleted(e.target.value)}>
+          <option value={""}>Todas</option>
+          <option value={"true"}>Completadas</option>
+        </CustomSelect>
+
+        <div className="align_right_content">
+          <button className="button" type="button" onClick={openModal}>
+            Nueva tarea <AiOutlinePlus />
+          </button>
+        </div>
       </div>
 
       <br />
+      <br />
 
-      {isLoadingCreate && <label>Cargando....</label>}
+      {taskList.length == 0 && !isFetching && (
+        <EmptyMessage message="No existen tareas" />
+      )}
 
       <div className="row_task">
-        {taskList.map((item, index) => (
+        {filteredList.map((item, index) => (
           <TaskComp
             key={index}
             item={item}
@@ -154,7 +200,11 @@ const HomePage = () => {
           <CustomInput
             className="input_text"
             placeholder="Título"
-            {...register("title", { required: true })}
+            {...register("title", {
+              required: "Ingrese un título entre 5 y 20 caracteres",
+              minLength: 5,
+              maxLength: 20,
+            })}
           />
 
           <br />
@@ -189,7 +239,11 @@ const HomePage = () => {
         <br />
         <br />
         <div className="row_space_around">
-          <button className="button" type="button" onClick={closeModalDelete}>
+          <button
+            className="button_secondary"
+            type="button"
+            onClick={closeModalDelete}
+          >
             Cancelar
           </button>
           <button className="button_error" type="button" onClick={removeTask}>
@@ -204,7 +258,11 @@ const HomePage = () => {
           <CustomInput
             className="input_text"
             placeholder="Título"
-            {...registerEdit("title", { required: true })}
+            {...registerEdit("title", {
+              required: "Ingrese un título entre 5 y 20 caracteres",
+              minLength: 5,
+              maxLength: 20,
+            })}
           />
 
           <br />
